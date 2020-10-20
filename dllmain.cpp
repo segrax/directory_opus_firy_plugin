@@ -69,7 +69,7 @@ bool VFS_IdentifyW(LPVFSPLUGININFOW lpVFSInfo) {
 	}
 
     StringCchCopyW(lpVFSInfo->lpszHandleExts, lpVFSInfo->cchHandleExtsMax, s2ws(fin).data());
-    StringCchCopyW(lpVFSInfo->lpszName, lpVFSInfo->cchNameMax, L"disk image support");
+    StringCchCopyW(lpVFSInfo->lpszName, lpVFSInfo->cchNameMax, L"Firy disk image support");
     StringCchCopyW(lpVFSInfo->lpszDescription, lpVFSInfo->cchDescriptionMax, L"Disk image support");
     StringCchCopyW(lpVFSInfo->lpszCopyright, lpVFSInfo->cchCopyrightMax, L"(c) Copyright 2020 Robert Crossfield");
     StringCchCopyW(lpVFSInfo->lpszURL, lpVFSInfo->cchURLMax, L"github.com/segrax");

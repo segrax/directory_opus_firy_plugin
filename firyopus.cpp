@@ -11,6 +11,8 @@
 #include <OleIdl.h>
 
 DOpusPluginHelperFunction DOpus;
+cSafeContainer<std::pair<std::wstring, firy::wpImage>, std::map<std::wstring, firy::wpImage>> gOpenFiles;
+std::mutex gOpenLock;
 
 std::wstring s2ws(const std::string& str) {
 	using convert_typeX = std::codecvt_utf8<wchar_t>;
@@ -72,7 +74,7 @@ firy::helpers::sDateTime ToDateTime(FILETIME pFT) {
 	SystemTimeToTzSpecificLocalTime(NULL, &AmigaTime, &TZAdjusted);
 
 	firy::helpers::sDateTime dt;
-	dt.year = TZAdjusted.wYear - 1900;
+	dt.year = TZAdjusted.wYear;
 	dt.month = TZAdjusted.wMonth;
 	dt.days = TZAdjusted.wDay;
 	dt.hour = TZAdjusted.wHour;
@@ -142,10 +144,12 @@ std::wstring cFiryPluginData::GetInsidePath(std::wstring pPath) {
 }
 
 bool cFiryPluginData::LoadFile(const std::wstring& pPath) {
-	auto extensions = firy::cFiry::getKnownExtensions();
+	tLockGuard mLock(gOpenLock);
+
 	if (mImage)
 		return true;
 
+	auto extensions = firy::cFiry::getKnownExtensions();
 	std::wstring path = pPath;
 
 	std::transform(path.begin(), path.end(), path.begin(), ::tolower);
@@ -157,7 +161,34 @@ bool cFiryPluginData::LoadFile(const std::wstring& pPath) {
 
 			mSourcePath = pPath.substr(0, EndPos + extw.size());
 
+			auto files = gOpenFiles.lockContainer();
+			for (auto fileIT = files.begin(); fileIT != files.end(); ++fileIT) {
+
+				if (fileIT->second.expired()) {
+					files.erase(fileIT);
+					break;
+				}
+			}
+			gOpenFiles.unlock();
+
+			auto file = gOpenFiles.find_if([this](auto pImage) -> bool {
+				if (pImage.second.expired())
+					return false;
+
+				if (pImage.first == mSourcePath) {
+					return true;
+				}
+				return false;
+			});
+			
+			if (!file.second.expired()) {
+				mImage = file.second.lock();
+				return true;
+			}
+
 			mImage = firy::gFiry->openImage(ws2s(mSourcePath));
+			gOpenFiles.push({ mSourcePath, firy::wpImage(mImage) });
+
 			return mImage != 0;
 		}
 	}
@@ -248,20 +279,6 @@ bool cFiryPluginData::ReadFile(cFiryFile* pFile, size_t pBytes, std::uint8_t* pB
 	return (*pReadSize > 0);
 }
 
-bool cFiryPluginData::DeleteFile(const std::wstring& pPath) {
-	if (!LoadFile(pPath))
-		return false;
-
-	auto path = GetInsidePath(pPath);
-	auto node = mImage->filesystemNode(ws2s(path));
-	if (!node)
-		return false;
-
-	auto res = node->remove();
-	mImage->sourceSave();
-	return res;
-}
-
 cFiryFile* cFiryPluginData::OpenFile(std::wstring pPath) {
 
 	if (!LoadFile(pPath))
@@ -305,6 +322,8 @@ int cFiryPluginData::Delete(LPVFSBATCHDATAW lpBatchData, const std::wstring& pPa
 	auto depth = tokenize(pFile, L"\\\\");
 	if (LoadFile(pPath)) {
 
+		DOpus.UpdateFunctionProgressBar(lpBatchData->lpFuncData, PROGRESSACTION_SETFILENAME, (DWORD_PTR)depth[depth.size() - 1].c_str());
+
 		auto path = GetInsidePath(pFile);
 		auto dirnode = mImage->filesystemNode(ws2s(path));
 
@@ -315,6 +334,20 @@ int cFiryPluginData::Delete(LPVFSBATCHDATAW lpBatchData, const std::wstring& pPa
 	}
 
 	return 1;
+}
+
+bool cFiryPluginData::DeleteFile(const std::wstring& pPath) {
+	if (!LoadFile(pPath))
+		return false;
+
+	auto path = GetInsidePath(pPath);
+	auto node = mImage->filesystemNode(ws2s(path));
+	if (!node)
+		return false;
+
+	auto res = node->remove();
+	mImage->sourceSave();
+	return res;
 }
 
 cFiryFindData* cFiryPluginData::FindFirstFile(LPTSTR lpszPath, LPWIN32_FIND_DATA lpwfdData, HANDLE hAbortEvent) {
