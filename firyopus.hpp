@@ -41,9 +41,10 @@ public:
 	cFiryPluginData();
 	~cFiryPluginData();
 
-
+	bool CreateDir(const std::wstring& pPath);
 	bool ReadDirectory(LPVFSREADDIRDATAW lpRDD);
 	bool ReadFile(cFiryFile* pFile, size_t pBytes, std::uint8_t* pBuffer, LPDWORD pReadSize);
+	bool DeleteFile(const std::wstring& pPath);
 
 	cFiryFile* OpenFile(std::wstring pPath);
 	void CloseFile(cFiryFile* pFile);
@@ -57,14 +58,13 @@ public:
 	bool FindNextFile(cFiryFindData* lpRAF, LPWIN32_FIND_DATA lpwfdData);
 	void FindClose(cFiryFindData* lpRAF);
 
-	int Import(LPVFSBATCHDATAW lpBatchData, const std::wstring& pFile, const std::wstring& pPath);
-	int ImportFile(LPVFSBATCHDATAW lpBatchData, const std::wstring& pFile, const std::wstring& pPath);
-	int ImportPath(LPVFSBATCHDATAW lpBatchData, const std::wstring& pFile, const std::wstring& pPath);
+	int Import(LPVFSBATCHDATAW lpBatchData, const std::wstring& pDest, const std::wstring& pPath);
+	int ImportNode(LPVFSBATCHDATAW lpBatchData, firy::spDirectory pDest, std::wstring pPath);
+	int ImportFile(LPVFSBATCHDATAW lpBatchData, firy::spDirectory pDest, const std::wstring& pPath);
+	int ImportPath(LPVFSBATCHDATAW lpBatchData, firy::spDirectory pDest, const std::wstring& pPath);
 
 	int Extract(LPVFSBATCHDATAW lpBatchData, const std::wstring& pFile, const std::wstring& pDest);
-	
 	int ExtractNode(LPVFSBATCHDATAW lpBatchData, firy::spNode pNode, std::wstring pDest);
-
 	int ExtractFile(LPVFSBATCHDATAW lpBatchData, firy::spFile pEntry, const std::wstring& pDest);
 	int ExtractPath(LPVFSBATCHDATAW lpBatchData, firy::spDirectory pPath, const std::wstring& pDest);
 

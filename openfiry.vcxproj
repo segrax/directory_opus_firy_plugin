@@ -173,6 +173,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="firyopus.hpp" />
+    <ClInclude Include="headers\plugin support.h" />
+    <ClInclude Include="headers\vfs plugins.h" />
+    <ClInclude Include="headers\viewer plugins.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

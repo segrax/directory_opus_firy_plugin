@@ -11,12 +11,13 @@ extern "C"
 {
     __declspec(dllexport) bool VFS_IdentifyW(LPVFSPLUGININFOW lpVFSInfo);
     __declspec(dllexport) bool VFS_ReadDirectoryW(HANDLE hData, LPVFSFUNCDATA lpVFSData, LPVFSREADDIRDATAW lpRDD);
+	__declspec(dllexport) bool VFS_CreateDirectoryW(HANDLE hVFSData, LPVFSFUNCDATA lpFuncData, LPWSTR lpszPath, DWORD dwFlags);
 
     __declspec(dllexport) HANDLE VFS_Create(LPGUID pGuid);
     __declspec(dllexport) void VFS_Destroy(HANDLE hData);
 
     __declspec(dllexport) HANDLE VFS_CreateFileW(HANDLE hData, LPVFSFUNCDATA lpVFSData, LPWSTR lpszPath, DWORD dwMode, DWORD dwFileAttr, DWORD dwFlags, LPFILETIME lpFT);
-
+	__declspec(dllexport) bool VFS_DeleteFileW(HANDLE hData, LPVFSFUNCDATA lpVFSData, LPWSTR lpszPath, DWORD dwFlags, int iSecurePasses);
     __declspec(dllexport) bool VFS_ReadFile(HANDLE hData, LPVFSFUNCDATA lpVFSData, HANDLE hFile, LPVOID lpData, DWORD dwSize, LPDWORD lpdwReadSize);
     __declspec(dllexport) void VFS_CloseFile(HANDLE hData, LPVFSFUNCDATA lpVFSData, HANDLE hFile);
 
@@ -56,7 +57,7 @@ bool VFS_IdentifyW(LPVFSPLUGININFOW lpVFSInfo) {
     // Initialise plugin information
     lpVFSInfo->idPlugin = GUIDPlugin_ADF;
     lpVFSInfo->dwFlags = VFSF_CANCONFIGURE | VFSF_NONREENTRANT;
-    lpVFSInfo->dwCapabilities = VFSCAPABILITY_CASESENSITIVE | VFSCAPABILITY_POSTCOPYREREAD | VFSCAPABILITY_READONLY;
+    lpVFSInfo->dwCapabilities = VFSCAPABILITY_CASESENSITIVE | VFSCAPABILITY_POSTCOPYREREAD;
 
 	std::string fin;
 	auto extensions = firy::cFiry::getKnownExtensions();
@@ -88,6 +89,10 @@ void VFS_Destroy(HANDLE hData) {
     delete (cFiryPluginData*)hData;
 }
 
+bool VFS_DeleteFileW(HANDLE hData, LPVFSFUNCDATA lpVFSData, LPWSTR lpszPath, DWORD dwFlags, int iSecurePasses) {
+	return (hData) ? ((cFiryPluginData*)hData)->DeleteFile(lpszPath) : false;
+}
+
 bool VFS_ReadFile(HANDLE hData, LPVFSFUNCDATA lpVFSData, HANDLE hFile, LPVOID lpData, DWORD dwSize, LPDWORD lpdwReadSize) {
     return (hData) ? ((cFiryPluginData*)hData)->ReadFile((cFiryFile*)hFile, dwSize, (std::uint8_t*) lpData, lpdwReadSize) : false;
     
@@ -104,6 +109,10 @@ HANDLE VFS_CreateFileW(HANDLE hData, LPVFSFUNCDATA lpVFSData, LPWSTR lpszPath, D
 
 bool VFS_ReadDirectoryW(HANDLE hData, LPVFSFUNCDATA lpFuncData, LPVFSREADDIRDATAW lpRDD) {
     return (hData) ? ((cFiryPluginData*)hData)->ReadDirectory(lpRDD) : false;
+}
+
+bool VFS_CreateDirectoryW(HANDLE hData, LPVFSFUNCDATA lpFuncData, LPWSTR lpszPath, DWORD dwFlags) {
+	return (hData) ? ((cFiryPluginData*)hData)->CreateDir(lpszPath) : false;
 }
 
 int VFS_ContextVerbW(HANDLE hData, LPVFSFUNCDATA lpVFSData, LPVFSCONTEXTVERBDATAW lpVerbData) {
