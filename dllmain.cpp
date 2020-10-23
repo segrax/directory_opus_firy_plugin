@@ -40,6 +40,7 @@ extern "C"
 
 extern "C" int WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID) {
     g_hModuleInstance = hInstance;
+	firy::gOptions = std::make_shared<cOpusOptions>();
     return 1;
 }
 

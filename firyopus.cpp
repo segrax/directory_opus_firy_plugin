@@ -2,8 +2,6 @@
 //
 
 #include "stdafx.h"
-#include <clocale>
-#include <locale>
 #include <string>
 #include <iostream>
 #include <codecvt>
@@ -11,6 +9,8 @@
 #include <OleIdl.h>
 
 DOpusPluginHelperFunction DOpus;
+DOpusPluginHelperUtil DOpusUtil;
+
 cSafeContainer<std::pair<std::wstring, firy::wpImage>, std::map<std::wstring, firy::wpImage>> gOpenFiles;
 std::mutex gOpenLock;
 
@@ -18,14 +18,23 @@ std::wstring s2ws(const std::string& str) {
 	using convert_typeX = std::codecvt_utf8<wchar_t>;
 	std::wstring_convert<convert_typeX, wchar_t> converterX;
 
-	return converterX.from_bytes(str);
+	try {
+		return converterX.from_bytes(str);
+	}
+	catch (...) {
+		return L"";
+	}
 }
 
 std::string ws2s(const std::wstring& wstr) {
 	using convert_typeX = std::codecvt_utf8<wchar_t>;
 	std::wstring_convert<convert_typeX, wchar_t> converterX;
-
-	return converterX.to_bytes(wstr);
+	try {
+		return converterX.to_bytes(wstr);
+	}
+	catch (...) {
+		return "";
+	}
 }
 
 std::vector<std::wstring> tokenize(const std::wstring& in, const std::wstring& delim) {
@@ -212,7 +221,7 @@ bool cFiryPluginData::CreateDir(const std::wstring& pPath) {
 		return false;
 
 	auto Dir = mImage->filesystemDirectoryCreate(ws2s(name));
-	auto res = node->addNew(Dir);
+	auto res = node->add(Dir);
 	mImage->sourceSave();
 	return res;
 }
@@ -272,7 +281,7 @@ bool cFiryPluginData::ReadFile(cFiryFile* pFile, size_t pBytes, std::uint8_t* pB
 
 	if (pFile->mBuffer) {
 		auto buf = pFile->mBuffer->takeBytes(pBytes > pFile->mBuffer->size() ? pFile->mBuffer->size() : pBytes );
-		*pReadSize = buf->size();
+		*pReadSize = (DWORD)buf->size();
 		memcpy(pBuffer, buf->data(), buf->size());
 	}
 
@@ -480,7 +489,7 @@ int cFiryPluginData::ImportFile(LPVFSBATCHDATAW lpBatchData, firy::spDirectory p
 	File->mContent = content;
 
 	SetEntryTime(File, ft);
-	auto result = pDest->addNew(File);
+	auto result = pDest->add(File);
 
 	DOpus.AddFunctionFileChange(lpBatchData->lpFuncData, true, OPUSFILECHANGE_CREATE, Depth[Depth.size() - 1].c_str());
 	return result == true ? 0 : 1;
@@ -506,7 +515,7 @@ int cFiryPluginData::ImportPath(LPVFSBATCHDATAW lpBatchData, firy::spDirectory p
 	auto t = ToDateTime(ft);
 	dir->timeWriteSet(t);
 
-	pDest->addNew(dir);
+	pDest->add(dir);
 
 	int result = 0;
 	auto contents = directoryList(FinalPath + L"*.*");
