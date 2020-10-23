@@ -6,6 +6,9 @@ cOpusOptions::cOpusOptions() {
 }
 
 firy::spOptionResponse cOpusOptions::warning(const std::string& pModule, const std::string& pMessage, const std::string& pMessageDetail) {
+	if (!mWarningShow)
+		return std::make_shared<firy::cOptionResponse>(true);
+
 	auto msg = s2ws(pMessage);
 	msg += s2ws(pMessageDetail);
 
@@ -14,7 +17,7 @@ firy::spOptionResponse cOpusOptions::warning(const std::string& pModule, const s
 	SHOWREQUESTDLGDATA data;
 	memset(&data, 0, sizeof(data));
 	data.cbSize = sizeof(data);
-	data.hwndParent = 0;
+	data.hwndParent = DOpus.GetFunctionWindow(0);
 	data.pszTitle = mod.c_str();
 	data.pszMessage = msg.c_str();
 	data.pszButtons = BUTTONS_OKCANCEL;
@@ -29,6 +32,9 @@ firy::spOptionResponse cOpusOptions::warning(const std::string& pModule, const s
 }
 
 void cOpusOptions::error(const std::string& pModule, const std::string& pMessage, const std::string& pMessageDetail) {
+	if (!mErrorShow)
+		return;
+
 	auto msg = s2ws(pMessage);
 	msg += s2ws(pMessageDetail);
 
@@ -37,7 +43,7 @@ void cOpusOptions::error(const std::string& pModule, const std::string& pMessage
 	SHOWREQUESTDLGDATA data;
 	memset(&data, 0, sizeof(data));
 	data.cbSize = sizeof(data);
-	data.hwndParent = 0;
+	data.hwndParent = DOpus.GetFunctionWindow(0);
 	data.pszTitle = mod.c_str();
 	data.pszMessage = msg.c_str();
 	data.pszButtons = BUTTONS_OK;
