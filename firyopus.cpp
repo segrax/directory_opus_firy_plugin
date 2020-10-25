@@ -170,13 +170,14 @@ bool cFiryPluginData::LoadFile(const std::wstring& pPath) {
 
 			mSourcePath = pPath.substr(0, EndPos + extw.size());
 
-			auto files = gOpenFiles.lockContainer();
-			for (auto fileIT = files.begin(); fileIT != files.end(); ++fileIT) {
+			auto& files = gOpenFiles.lockContainer();
+			for (auto fileIT = files.begin(); fileIT != files.end(); ) {
 
 				if (fileIT->second.expired()) {
-					files.erase(fileIT);
-					break;
+					fileIT = files.erase(fileIT);
+					continue;
 				}
+				++fileIT;
 			}
 			gOpenFiles.unlock();
 
@@ -221,9 +222,7 @@ bool cFiryPluginData::CreateDir(const std::wstring& pPath) {
 		return false;
 
 	auto Dir = mImage->filesystemDirectoryCreate(ws2s(name));
-	auto res = node->add(Dir);
-	mImage->sourceSave();
-	return res;
+	return node->add(Dir);
 }
 
 bool cFiryPluginData::ReadDirectory(LPVFSREADDIRDATAW lpRDD) {
@@ -354,9 +353,7 @@ bool cFiryPluginData::DeleteFile(const std::wstring& pPath) {
 	if (!node)
 		return false;
 
-	auto res = node->remove();
-	mImage->sourceSave();
-	return res;
+	return node->remove();
 }
 
 cFiryFindData* cFiryPluginData::FindFirstFile(LPTSTR lpszPath, LPWIN32_FIND_DATA lpwfdData, HANDLE hAbortEvent) {
@@ -455,10 +452,7 @@ int cFiryPluginData::Import(LPVFSBATCHDATAW lpBatchData, const std::wstring& pFi
 
 	auto path = GetInsidePath(pFile);
 	auto node = mImage->filesystemPath(ws2s(path));
-
-	auto res = ImportNode(lpBatchData, node, pPath);
-	mImage->sourceSave();
-	return res;
+	return ImportNode(lpBatchData, node, pPath);
 }
 
 int cFiryPluginData::ImportNode(LPVFSBATCHDATAW lpBatchData, firy::spDirectory pDest, std::wstring pPath) {

@@ -40,13 +40,13 @@ extern "C"
 
 extern "C" int WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID) {
     g_hModuleInstance = hInstance;
-	firy::gOptionsDefault = std::make_shared<cOpusOptions>();
+	
     return 1;
 }
 
 // Initialise plugin
 bool VFS_Init(LPVFSINITDATA pInitData) {
-
+	firy::gOptionsDefault = std::make_shared<cOpusOptions>();
     return true;
 }
 

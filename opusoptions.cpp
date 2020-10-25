@@ -2,9 +2,11 @@
 
 cOpusOptions::cOpusOptions() {
 
+	mAutoSaveSource = true;
+	mAutoSaveSourceExit = true;
 }
 
-firy::spOptionResponse cOpusOptions::warning(firy::spImage pImage, const std::string& pMessage, const std::string& pMessageDetail) {
+firy::spOptionResponse cOpusOptions::warning(firy::pImage pImage, const std::string& pMessage, const std::string& pMessageDetail) {
 	if (!mWarningShow)
 		return std::make_shared<firy::cOptionResponse>(true);
 
@@ -30,7 +32,7 @@ firy::spOptionResponse cOpusOptions::warning(firy::spImage pImage, const std::st
 
 }
 
-void cOpusOptions::error(firy::spImage pImage, const std::string& pMessage, const std::string& pMessageDetail) {
+void cOpusOptions::error(firy::pImage pImage, const std::string& pMessage, const std::string& pMessageDetail) {
 	if (!mErrorShow)
 		return;
 
@@ -51,7 +53,7 @@ void cOpusOptions::error(firy::spImage pImage, const std::string& pMessage, cons
 	DOpusUtil.ShowRequestDlg(&data);
 }
 
-firy::spOptionResponse cOpusOptions::savechanges(firy::spImage pImage, const std::string& pMessage) {
+firy::spOptionResponse cOpusOptions::savechanges(firy::pImage pImage, const std::string& pMessage) {
 	if (mAutoSaveSource)
 		return std::make_shared<firy::cOptionResponse>(false);
 
@@ -73,3 +75,24 @@ firy::spOptionResponse cOpusOptions::savechanges(firy::spImage pImage, const std
 	return std::make_shared<firy::cOptionResponse>(false);
 }
 
+firy::spOptionResponse cOpusOptions::savechangesExit(firy::pImage pImage, const std::string& pMessage) {
+	if (mAutoSaveSourceExit)
+		return std::make_shared<firy::cOptionResponse>(false);
+
+	auto mod = L"Save changes to " + s2ws(pImage->sourceID());
+
+	SHOWREQUESTDLGDATA data;
+	memset(&data, 0, sizeof(data));
+	data.cbSize = sizeof(data);
+	data.hwndParent = DOpus.GetFunctionWindow(0);
+	data.pszTitle = L"Save Changes";
+	data.pszMessage = mod.c_str();
+	data.pszButtons = BUTTONS_OKCANCEL;
+	data.hIcon = HICON_WARNING;
+
+	if (!DOpusUtil.ShowRequestDlg(&data)) {
+		return std::make_shared<firy::cOptionResponse>(true);
+	}
+
+	return std::make_shared<firy::cOptionResponse>(false);
+}
