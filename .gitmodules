@@ -1,0 +1,3 @@
+[submodule "library/firy"]
+	path = library/firy
+	url = https://github.com/segrax/firy.git
