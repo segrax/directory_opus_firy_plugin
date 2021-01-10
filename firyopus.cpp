@@ -575,7 +575,9 @@ int cFiryPluginData::ExtractPath(LPVFSBATCHDATAW lpBatchData, firy::spDirectory 
 
 	if (!result) {
 		HANDLE filename = CreateFile(pDest.c_str(), FILE_WRITE_ATTRIBUTES, 0, 0, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
-		SetFileTime(filename, 0, 0, &GetFileTime(pPath->timeWriteGet()));
+		auto time = GetFileTime(pPath->timeWriteGet());
+
+		SetFileTime(filename, 0, 0, &time);
 		CloseHandle(filename);
 	}
 
@@ -596,7 +598,8 @@ int cFiryPluginData::ExtractFile(LPVFSBATCHDATAW lpBatchData, firy::spFile pEntr
 	DOpus.UpdateFunctionProgressBar(lpBatchData->lpFuncData, PROGRESSACTION_STEPBYTES, (DWORD_PTR)pEntry->sizeInBytesGet());
 
 	HANDLE filename = CreateFile(pDest.c_str(), FILE_WRITE_ATTRIBUTES, FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-	SetFileTime(filename, 0, 0, &GetFileTime(pEntry->timeWriteGet()));
+	auto time = GetFileTime(pEntry->timeWriteGet());
+	SetFileTime(filename, 0, 0, &time);
 	CloseHandle(filename);
 
 	DOpus.AddFunctionFileChange(lpBatchData->lpFuncData, false, OPUSFILECHANGE_CREATE, lpBatchData->pszDestPath);
