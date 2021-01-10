@@ -290,7 +290,7 @@ bool cFiryPluginData::ReadFile(cFiryFile* pFile, size_t pBytes, std::uint8_t* pB
 cFiryFile* cFiryPluginData::OpenFile(std::wstring pPath) {
 
 	if (!LoadFile(pPath))
-		return false;
+		return 0;
 
 	auto path = GetInsidePath(pPath);
 	auto dirnode = mImage->filesystemFile(ws2s(path));
