@@ -1,0 +1,5 @@
+* text=auto
+
+/test/_raw/* text eol=crlf
+/*.cpp text=auto
+/*.h text=auto

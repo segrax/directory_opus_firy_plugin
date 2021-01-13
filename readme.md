@@ -8,7 +8,7 @@ VFS Plugin which adds support for various disk image types
 
 * ADF/HDF
 * D64
-* FAT 12/16/32
+* FAT 12/16/32 (Read only)
 
 
 #### Requirements

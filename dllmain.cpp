@@ -1,8 +1,29 @@
-// dllmain.cpp : Defines the entry point for the DLL application.
+/*
+	Copyright (c) 2020-2021 Robert Crossfield
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE.
+*/
+
 #include "stdafx.h"
 
 // b3e2dc4a-3853-41cd-b7b4-c522bbcc5b07
-static const GUID GUIDPlugin_ADF = { 0xb3e2dc4a, 0x3853, 0x41cd,{ 0xb7, 0xb4, 0xc5, 0x22, 0xbb, 0xcc,0x5b, 0x07 } };
+static const GUID GUIDPlugin_FIRY = { 0xb3e2dc4a, 0x3853, 0x41cd,{ 0xb7, 0xb4, 0xc5, 0x22, 0xbb, 0xcc,0x5b, 0x07 } };
 
 HINSTANCE g_hModuleInstance = 0;
 
@@ -56,7 +77,7 @@ void VFS_Uninit() {
 
 bool VFS_IdentifyW(LPVFSPLUGININFOW lpVFSInfo) {
     // Initialise plugin information
-    lpVFSInfo->idPlugin = GUIDPlugin_ADF;
+    lpVFSInfo->idPlugin = GUIDPlugin_FIRY;
     lpVFSInfo->dwFlags = VFSF_CANCONFIGURE | VFSF_NONREENTRANT;
     lpVFSInfo->dwCapabilities = VFSCAPABILITY_CASESENSITIVE | VFSCAPABILITY_POSTCOPYREREAD;
 
@@ -73,7 +94,7 @@ bool VFS_IdentifyW(LPVFSPLUGININFOW lpVFSInfo) {
     StringCchCopyW(lpVFSInfo->lpszName, lpVFSInfo->cchNameMax, L"Firy disk image support");
     StringCchCopyW(lpVFSInfo->lpszDescription, lpVFSInfo->cchDescriptionMax, L"Disk image support");
     StringCchCopyW(lpVFSInfo->lpszCopyright, lpVFSInfo->cchCopyrightMax, L"(c) Copyright 2020 Robert Crossfield");
-    StringCchCopyW(lpVFSInfo->lpszURL, lpVFSInfo->cchURLMax, L"github.com/segrax");
+    StringCchCopyW(lpVFSInfo->lpszURL, lpVFSInfo->cchURLMax, L"github.com/segrax/directory_opus_firy_plugin");
 
     return true;
 }
