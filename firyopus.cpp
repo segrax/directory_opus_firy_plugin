@@ -303,7 +303,7 @@ bool cFiryPluginData::ReadFile(cFiryFile* pFile, size_t pBytes, std::uint8_t* pB
 	if(!pFile->mBuffer)
 		pFile->mBuffer = pFile->mFile->read();
 
-	if (pFile->mBuffer) {
+	if (pFile->mBuffer && pFile->mBuffer->size()) {
 		auto buf = pFile->mBuffer->takeBytes(pBytes > pFile->mBuffer->size() ? pFile->mBuffer->size() : pBytes );
 		*pReadSize = (DWORD)buf->size();
 		memcpy(pBuffer, buf->data(), buf->size());
