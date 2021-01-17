@@ -294,11 +294,10 @@ bool cFiryPluginData::ReadDirectory(LPVFSREADDIRDATAW lpRDD) {
 }
 
 bool cFiryPluginData::ReadFile(cFiryFile* pFile, size_t pBytes, std::uint8_t* pBuffer, LPDWORD pReadSize) {
+	*pReadSize = 0;
 
 	if (!pFile)
 		return false;
-
-	*pReadSize = 0;
 
 	if(!pFile->mBuffer)
 		pFile->mBuffer = pFile->mFile->read();
