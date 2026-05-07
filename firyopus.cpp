@@ -78,6 +78,64 @@ std::vector<std::wstring> tokenize(const std::wstring& in, const std::wstring& d
 	return tokens;
 }
 
+bool IsSubPath(const std::wstring& pPath, const std::wstring& pPrefix) {
+	if (pPrefix.empty())
+		return false;
+
+	if (pPath.size() < pPrefix.size())
+		return false;
+
+	if (pPath.compare(0, pPrefix.size(), pPrefix) != 0)
+		return false;
+
+	if (pPath.size() == pPrefix.size())
+		return true;
+
+	auto next = pPath[pPrefix.size()];
+	return next == L'\\' || next == L'/';
+}
+
+std::string wildcardToRegex(const std::string& pMask) {
+	if (pMask.empty())
+		return "^.*$";
+
+	std::string regex;
+	regex.reserve(pMask.size() + 16);
+	regex += '^';
+
+	for (auto c : pMask) {
+		switch (c) {
+		case '*':
+			regex += ".*";
+			break;
+		case '?':
+			regex += '.';
+			break;
+		case '.':
+		case '\\':
+		case '+':
+		case '|':
+		case '(':
+		case ')':
+		case '[':
+		case ']':
+		case '{':
+		case '}':
+		case '^':
+		case '$':
+			regex += '\\';
+			regex += c;
+			break;
+		default:
+			regex += c;
+			break;
+		}
+	}
+
+	regex += '$';
+	return regex;
+}
+
 cFiryPluginData::cFiryPluginData() {
 
 }
@@ -166,10 +224,8 @@ void cFiryPluginData::GetWfdForEntry(firy::spNode pEntry, LPWIN32_FIND_DATA pDat
 }
 
 std::wstring cFiryPluginData::GetInsidePath(std::wstring pPath) {
-	std::vector<std::wstring> Depth;
-
-	if (pPath.find(mSourcePath) != std::wstring::npos) {
-		pPath = pPath.replace(pPath.begin(), pPath.begin() + mSourcePath.length(), L"");
+	if (IsSubPath(pPath, mSourcePath)) {
+		pPath = pPath.substr(mSourcePath.length());
 		std::replace(pPath.begin(), pPath.end(), '\\', '/');
 		return pPath;
 	}
@@ -239,7 +295,16 @@ bool cFiryPluginData::CreateDir(const std::wstring& pPath) {
 	auto path = GetInsidePath(pPath);
 
 	auto depth = tokenize(path, L"/");
+	if (depth.empty())
+		return false;
+
 	auto name = depth[depth.size() - 1];
+	if (name.empty())
+		return false;
+
+	if (path.size() < name.size())
+		return false;
+
 	path = path.substr(0, path.size() - name.size());
 
 	auto node = mImage->filesystemPath(ws2s(path));
@@ -326,6 +391,9 @@ cFiryFile* cFiryPluginData::OpenFile(std::wstring pPath) {
 }
 
 void cFiryPluginData::CloseFile(cFiryFile* pFile) {
+	if (!pFile)
+		return;
+
 	pFile->mFile = 0;
 	pFile->mBuffer = 0;
 	delete pFile;
@@ -352,6 +420,9 @@ int cFiryPluginData::ContextVerb(LPVFSCONTEXTVERBDATAW lpVerbData) {
 int cFiryPluginData::Delete(LPVFSBATCHDATAW lpBatchData, const std::wstring& pPath, const std::wstring& pFile, bool pAll) {
 	DOpus.UpdateFunctionProgressBar(lpBatchData->lpFuncData, PROGRESSACTION_STATUSTEXT, (DWORD_PTR)"Deleting");
 	auto depth = tokenize(pFile, L"\\\\");
+	if (depth.empty())
+		return 1;
+
 	if (LoadFile(pPath)) {
 
 		DOpus.UpdateFunctionProgressBar(lpBatchData->lpFuncData, PROGRESSACTION_SETFILENAME, (DWORD_PTR)depth[depth.size() - 1].c_str());
@@ -389,11 +460,23 @@ cFiryFindData* cFiryPluginData::FindFirstFile(LPTSTR lpszPath, LPWIN32_FIND_DATA
 		auto path = GetInsidePath(lpszPath);
 
 		auto depth = tokenize(lpszPath, L"\\\\");
-		auto filemask = depth[depth.size() - 1];
+		auto filemask = depth.empty() ? L"" : depth[depth.size() - 1];
 		auto Filepath = ws2s(filemask);
-		path = path.substr(0, path.size() - filemask.size());
+		if (!filemask.empty()) {
+			if (path.size() < filemask.size())
+				return findData;
+			path = path.substr(0, path.size() - filemask.size());
+		}
+		else if (!path.empty() && path.back() == '/') {
+			path.pop_back();
+		}
 
-		findData->mFindMask = std::regex("(." + Filepath + ")");
+		try {
+			findData->mFindMask = std::regex(wildcardToRegex(Filepath), std::regex_constants::icase);
+		}
+		catch (const std::exception&) {
+			return findData;
+		}
 		findData->mDirectory = mImage->filesystemPath(ws2s(path));
 		if (!findData->mDirectory)
 			return findData;
@@ -415,7 +498,7 @@ cFiryFindData* cFiryPluginData::FindFirstFile(LPTSTR lpszPath, LPWIN32_FIND_DATA
 
 bool cFiryPluginData::FindNextFile(cFiryFindData* pFindData, LPWIN32_FIND_DATA lpwfdData) {
 	ZeroMemory(lpwfdData, sizeof(WIN32_FIND_DATA));
-	if (!pFindData->mDirectory)
+	if (!pFindData || !pFindData->mDirectory)
 		return false;
 
 	for (; pFindData->mIndex < pFindData->mDirectory->mNodes.size(); ++pFindData->mIndex) {
@@ -476,10 +559,16 @@ int cFiryPluginData::Import(LPVFSBATCHDATAW lpBatchData, const std::wstring& pFi
 
 	auto path = GetInsidePath(pFile);
 	auto node = mImage->filesystemPath(ws2s(path));
+	if (!node)
+		return 1;
+
 	return ImportNode(lpBatchData, node, pPath);
 }
 
 int cFiryPluginData::ImportNode(LPVFSBATCHDATAW lpBatchData, firy::spDirectory pDest, std::wstring pPath) {
+	if (!pDest)
+		return 1;
+
 	auto Attribs = GetFileAttributes(pPath.c_str());
 
 	if (Attribs & FILE_ATTRIBUTE_DIRECTORY)
@@ -489,47 +578,80 @@ int cFiryPluginData::ImportNode(LPVFSBATCHDATAW lpBatchData, firy::spDirectory p
 }
 
 int cFiryPluginData::ImportFile(LPVFSBATCHDATAW lpBatchData, firy::spDirectory pDest, const std::wstring& pPath) {
+	if (!pDest)
+		return 1;
 
 	auto Depth = tokenize(pPath, L"\\\\");
+	if (Depth.empty())
+		return 1;
+	const auto& filename = Depth.back();
+	if (filename.empty())
+		return 1;
 
 	auto content = firy::gResources->FileRead(ws2s(pPath));
+	if (!content)
+		return 1;
 
-	DOpus.UpdateFunctionProgressBar(lpBatchData->lpFuncData, PROGRESSACTION_SETFILENAME, (DWORD_PTR)Depth[Depth.size() - 1].c_str());
+	DOpus.UpdateFunctionProgressBar(lpBatchData->lpFuncData, PROGRESSACTION_SETFILENAME, (DWORD_PTR)filename.c_str());
 	DOpus.UpdateFunctionProgressBar(lpBatchData->lpFuncData, PROGRESSACTION_SETFILESIZE, (DWORD_PTR)content->size());
 
 	FILETIME ft;
-	HANDLE filename = CreateFile(pPath.c_str(), FILE_READ_ATTRIBUTES, 0, 0, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
-	::GetFileTime(filename, 0, 0, &ft);
-	CloseHandle(filename);
+	HANDLE hFilename = CreateFile(pPath.c_str(), FILE_READ_ATTRIBUTES, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+	if (hFilename != INVALID_HANDLE_VALUE) {
+		::GetFileTime(hFilename, 0, 0, &ft);
+		CloseHandle(hFilename);
+	}
+	else {
+		ft.dwHighDateTime = 0;
+		ft.dwLowDateTime = 0;
+	}
 
-	std::string name = ws2s(Depth[Depth.size() - 1]);
+	std::string name = ws2s(filename);
 	auto File = mImage->filesystemFileCreate(name);
+	if (!File)
+		return 1;
 	File->mContent = content;
 
 	SetEntryTime(File, ft);
 	auto result = pDest->add(File);
 
-	DOpus.AddFunctionFileChange(lpBatchData->lpFuncData, true, OPUSFILECHANGE_CREATE, Depth[Depth.size() - 1].c_str());
+	DOpus.AddFunctionFileChange(lpBatchData->lpFuncData, true, OPUSFILECHANGE_CREATE, filename.c_str());
 	return result == true ? 0 : 1;
 }
 
 int cFiryPluginData::ImportPath(LPVFSBATCHDATAW lpBatchData, firy::spDirectory pDest, const std::wstring& pPath) {
+	if (!pDest)
+		return 1;
 
 	std::wstring FinalPath = pPath;
+	if (FinalPath.empty())
+		return 1;
+
 	if (FinalPath[FinalPath.size() - 1] != L'\\')
 		FinalPath += L"\\";
 
 	auto Depth = tokenize(pPath, L"\\\\");
+	if (Depth.empty())
+		return 1;
 
 	FILETIME ft;
-	HANDLE filename = CreateFile(pPath.c_str(), FILE_READ_ATTRIBUTES, 0, 0, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
-	::GetFileTime(filename, 0, 0, &ft);
-	CloseHandle(filename);
+	HANDLE hFilename = CreateFile(pPath.c_str(), FILE_READ_ATTRIBUTES, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+	if (hFilename != INVALID_HANDLE_VALUE) {
+		::GetFileTime(hFilename, 0, 0, &ft);
+		CloseHandle(hFilename);
+	}
+	else {
+		ft.dwHighDateTime = 0;
+		ft.dwLowDateTime = 0;
+	}
 
 	DOpus.AddFunctionFileChange(lpBatchData->lpFuncData, true, OPUSFILECHANGE_MAKEDIR, FinalPath.c_str());
 
 	std::string name = ws2s(Depth[Depth.size() - 1]);
 	auto dir = mImage->filesystemDirectoryCreate(name);
+	if (!dir)
+		return 1;
+
 	auto t = ToDateTime(ft);
 	dir->timeWriteSet(t);
 
