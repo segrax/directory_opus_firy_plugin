@@ -16,3 +16,25 @@ VFS Plugin which adds support for various disk image types
 #### Requirements
 
 * Directory Opus 12 for Windows
+* Visual Studio 2022 or newer with the C++ desktop workload
+* CMake 3.23 or newer
+
+#### Building
+
+Generate the Visual Studio solution:
+
+```powershell
+cmake --preset vs2022-x64
+```
+
+Open `build/vs2022-x64/openfiry.sln` in Visual Studio, or build the release DLL from the command line:
+
+```powershell
+cmake --build --preset vs2022-x64-release
+```
+
+The release DLL is written to `build/vs2022-x64/bin/Release/OPENFIRY.dll`.
+
+#### Releases
+
+The GitHub Actions workflow builds the x64 release DLL on pushes, pull requests, and manual runs. Pushing a tag like `v1.0.0` also publishes a GitHub release with the DLL and zip package attached.

@@ -1,0 +1,24 @@
+# CMake and Visual Studio generated files
+/build/
+/install/
+/dist/
+/.vs/
+/x64/
+/openfiry/
+
+# Visual Studio user files
+*.user
+*.suo
+*.VC.db
+*.VC.VC.opendb
+
+# Build outputs
+*.dll
+*.exp
+*.ilk
+*.ipdb
+*.iobj
+*.lib
+*.obj
+*.pdb
+*.tlog

@@ -1,0 +1,67 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - "v*"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build x64 DLL
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure
+        run: cmake --preset vs2022-x64
+
+      - name: Build
+        run: cmake --build --preset vs2022-x64-release
+
+      - name: Stage artifacts
+        shell: pwsh
+        run: |
+          $buildDir = "build/vs2022-x64/bin/Release"
+          $distDir = "dist"
+          New-Item -ItemType Directory -Force -Path $distDir | Out-Null
+
+          Copy-Item "$buildDir/OPENFIRY.dll" "$distDir/OPENFIRY.dll" -Force
+          $packageFiles = @("$distDir/OPENFIRY.dll")
+          if (Test-Path "$buildDir/OPENFIRY.pdb") {
+            Copy-Item "$buildDir/OPENFIRY.pdb" "$distDir/OPENFIRY.pdb" -Force
+            $packageFiles += "$distDir/OPENFIRY.pdb"
+          }
+
+          if ($env:GITHUB_REF_TYPE -eq "tag") {
+            $version = $env:GITHUB_REF_NAME
+          } else {
+            $version = $env:GITHUB_SHA.Substring(0, 7)
+          }
+          $version = $version -replace '[^A-Za-z0-9_.-]', '-'
+
+          $zipPath = "$distDir/OPENFIRY-$version-x64.zip"
+          Compress-Archive -Path $packageFiles -DestinationPath $zipPath -Force
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OPENFIRY-x64
+          path: dist/*
+
+      - name: Publish GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
